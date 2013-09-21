@@ -4,6 +4,11 @@ import getopt
 import re
 import os.path
 
+
+class RunException(Exception):
+    def __init__(self, msg):
+        self.msg = msg
+
 class Usage(Exception):
     def __init__(self, msg):
         helpmsg = """
@@ -75,6 +80,9 @@ class Contexts():
         return None
 
     def assign(self, country, context):
+        owner = self.who_owns(country)
+        if owner:
+            raise RunException('The country "%s" is already assigned to the context "%s"' % (country, owner))
         print "Assigning the country %s to context %s" % (country, context)
 
 
@@ -145,6 +153,12 @@ def main(argv=None):
         print >>sys.stderr, err.msg
         print >>sys.stderr, "for help use --help"
         return 2
+    except RunException, err:
+        red="\033[0;31m"
+        reset="\033[0m"
+        print >>sys.stderr, red + "Error: " + reset + err.msg + reset
+        return 2
+
 
 if __name__ == "__main__":
     sys.exit(main())
