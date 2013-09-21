@@ -30,6 +30,7 @@ teams_dir = "./dir-teams"
 class Context():
 
     def load_from_file(self, file_path):
+        self.file_path = file_path
         with open(file_path) as f:
             lines = f.readlines() 
             if len(lines) != 2:
@@ -41,12 +42,29 @@ class Context():
 
                 self.name = name
                 self.countries = countries
+
+
     def show(self):
         print "%s => %s " % (self.countries,  self.name)
 
+
     def serialize(self):
-        print "[TEAM]=\"%s\"" % self.name
-        print "[COUNTRIES]=\"%s\"" % " ".join(self.countries)
+        s= '[TEAM]="%s"\n' % self.name
+        s=s+ '[COUNTRIES]="%s"' % " ".join(self.countries)
+        return s
+
+
+    def persist(self):
+        content = self.serialize()
+        with open(self.file_path, "w") as f:
+            f.writelines(content)
+
+
+    def assign(self, country):
+        if country in self.countries:
+            raise RunException('Country "%s" is already assigned to context "%s"' % (country, self.name))
+        else:
+            self.countries.append(country)
 
 
 class Contexts():
@@ -61,8 +79,9 @@ class Contexts():
             context.load_from_file(dat)
             self.contexts[context.name] = context
 
+
     def serialize(self, context):
-        self.contexts[context].serialize()
+        return self.contexts[context].serialize()
 
 
     def show(self, context):
@@ -73,17 +92,42 @@ class Contexts():
         for name, context in self.contexts.items():
             context.show()
 
+
     def who_owns(self, country):
         for name, context in self.contexts.items():
             if country in context.countries:
                 return context.name
         return None
 
-    def assign(self, country, context):
+
+    def assign(self, country, context_name):
         owner = self.who_owns(country)
         if owner:
             raise RunException('The country "%s" is already assigned to the context "%s"' % (country, owner))
-        print "Assigning the country %s to context %s" % (country, context)
+
+        if not self.has(context_name):
+            self.contexts[context_name] = self.create_context(context_name)
+
+        
+        print "Assigning the country %s to context %s" % (country, context_name)
+        context = self.contexts[context_name]
+        context.assign(country)
+        context.persist()
+
+
+    def has(self, context_name):
+        return (context_name in self.contexts.keys())
+
+
+    def create_context(self, context_name):
+        context = Context()
+        context.name = context_name
+        context.countries = []
+        context.file_path = os.path.join(teams_dir, "%s.dat" %context_name)
+
+        return context
+
+
 
 
     def list_contexts(self):
@@ -91,6 +135,7 @@ class Contexts():
             print name
 
         
+
 
 def main(argv=None):
     if argv is None:
@@ -146,8 +191,8 @@ def main(argv=None):
                 contexts.show(contexts.who_owns(country))
             else:
                 print "nulla"
-        elif command=="serialize-context":
-            contexts.serialize(context)
+        elif command=="serialize":
+            print contexts.serialize(context)
 
     except Usage, err:
         print >>sys.stderr, err.msg
