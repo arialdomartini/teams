@@ -7,6 +7,8 @@ class Usage(Exception):
     def __init__(self, msg):
         self.msg = msg
 
+teams_dir = "./dir-teams"
+
 
 class Context():
 
@@ -38,7 +40,7 @@ def main(argv=None):
 
 
         context = Context()
-        context.load_from_file("./dwh.dat")
+        context.load_from_file("%s/dwh.dat" % teams_dir)
         print context.name
         print context.countries
 
