@@ -39,6 +39,9 @@ class Contexts():
             context.load_from_file(dat)
             self.contexts.append(context)
 
+    def list_all(self):
+        for context in self.contexts:
+            print "%s => %s " % (context.countries,  context.name)
 
 
 
@@ -47,16 +50,21 @@ def main(argv=None):
         argv = sys.argv
     try:
         try:
-            opts, args = getopt.getopt(argv[1:], "h", ["help"])
+            opts, args = getopt.getopt(argv[1:], "h", ["help", "list-all"])
         except getopt.error, msg:
              raise Usage(msg)
 
 
         contexts = Contexts()
         contexts.load_from_dir(teams_dir)
-        for context in contexts.contexts:
-            print "Context: %s, Countries: %s " % (context.name,  context.countries)
-
+        
+        for o, a in opts:
+            print "analizzo %s" % o
+            if o in ("-h", "--help"):
+                raise Usage("help")
+            elif o == "--list-all":
+                contexts.list_all()
+                return 0
 
 
 
