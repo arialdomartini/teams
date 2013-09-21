@@ -57,6 +57,12 @@ class Contexts():
         for name, context in self.contexts.items():
             context.show()
 
+    def who_owns(self, country):
+        for name, context in self.contexts.items():
+            if country in context.countries:
+                return context.name
+        return None
+
 
 
 def main(argv=None):
@@ -64,7 +70,7 @@ def main(argv=None):
         argv = sys.argv
     try:
         try:
-            opts, args = getopt.getopt(argv[1:], "h", ["help", "show-all", "show-context=", "serialize-context="])
+            opts, args = getopt.getopt(argv[1:], "h", ["help", "show-all", "show-context=", "serialize-context=", "who-owns="])
         except getopt.error, msg:
              raise Usage(msg)
 
@@ -85,6 +91,10 @@ def main(argv=None):
             elif o == "--serialize-context":
                 context_name = a
                 contexts.serialize(context_name)
+                return 0
+            elif o == "--who-owns":
+                country = a
+                print contexts.who_owns(country)
                 return 0
 
     except Usage, err:
