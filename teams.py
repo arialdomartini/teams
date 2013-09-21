@@ -17,6 +17,7 @@ Available commands:
   show --context=<context>
   show-all
   assign --country=<country> --context=<context>
+  release --country=<country> --context=<context>
   who-owns --country=<country>
   serialize --context=<context>
   contexts
@@ -55,9 +56,12 @@ class Context():
 
 
     def persist(self):
-        content = self.serialize()
-        with open(self.file_path, "w") as f:
-            f.writelines(content)
+        if len(self.countries) > 0:
+            with open(self.file_path, "w") as f:
+                content = self.serialize()
+                f.writelines(content)
+        else:
+            os.remove(self.file_path)
 
 
     def assign(self, country):
@@ -65,6 +69,17 @@ class Context():
             raise RunException('Country "%s" is already assigned to context "%s"' % (country, self.name))
         else:
             self.countries.append(country)
+
+    def release(self, country):
+        if country not in self.countries:
+            raise RunException('Country "%s" is not assigned to context "%s"' % (country, self.name))
+        else:
+            self.countries.remove(country)
+
+
+    def is_empty(self):
+        return len(self.countries) == 0
+
 
 
 class Contexts():
@@ -78,6 +93,7 @@ class Contexts():
             context = Context()
             context.load_from_file(dat)
             self.contexts[context.name] = context
+
 
 
     def serialize(self, context):
@@ -112,7 +128,28 @@ class Contexts():
         print "Assigning the country %s to context %s" % (country, context_name)
         context = self.contexts[context_name]
         context.assign(country)
+        self.save(context)
+
+
+    def release(self, country, context_name):
+        owner = self.who_owns(country)
+        if owner == None:
+            raise RunException('The country "%s" is not assigned' % country)
+        if owner != context_name:
+            raise RunException('The country "%s" is assigned to the context "%s" and not to the context "%s"' % (country, owner, context_name))
+
+        if not self.has(context_name):
+            raise RunException('"The context "%s" does not exist' % context_name)
+
+        
+        context = self.contexts[context_name]
+        context.release(country)
+        self.save(context)
+
+    def save(self, context):
         context.persist()
+        if context.is_empty():
+            del self.contexts[context.name]
 
 
     def has(self, context_name):
@@ -145,7 +182,7 @@ def main(argv=None):
     if len(argv)==0:
         raise Usage("")
 
-    commands = ["show", "show-all", "assign", "who-owns", "serialize", "contexts"] 
+    commands = ["show", "show-all", "assign", "release", "who-owns", "serialize", "contexts"] 
     
     
     try:
@@ -178,6 +215,11 @@ def main(argv=None):
                 contexts.assign(country, context)
             else:
                 raise Usage("--country and --context are mandatory")
+        if command=="release":
+            if "context" in locals() and "country" in locals():
+                contexts.release(country, context)
+            else:
+                raise Usage("--country and --context are mandatory")
         elif command=="show-all":
             contexts.show_all()
         elif command=="contexts":
@@ -190,7 +232,7 @@ def main(argv=None):
             elif "country" in locals():
                 contexts.show(contexts.who_owns(country))
             else:
-                print "nulla"
+                raise Usage("show requires either --country or --context")
         elif command=="serialize":
             print contexts.serialize(context)
 
