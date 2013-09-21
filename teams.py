@@ -25,11 +25,13 @@ class Context():
 
                 self.name = name
                 self.countries = countries
+    def show(self):
+        print "%s => %s " % (self.countries,  self.name)
 
 
 class Contexts():
     def load_from_dir(self, teams_dir):
-        self.contexts = []
+        self.contexts = {}
 
         from os import listdir
         dats = [ os.path.join(teams_dir, f) for f in listdir(teams_dir)] 
@@ -37,11 +39,14 @@ class Contexts():
         for dat in dats:
             context = Context()
             context.load_from_file(dat)
-            self.contexts.append(context)
+            self.contexts[context.name] = context
 
-    def list_all(self):
-        for context in self.contexts:
-            print "%s => %s " % (context.countries,  context.name)
+    def show(self, context):
+        self.contexts[context].show()
+
+    def show_all(self):
+        for name, context in self.contexts.items():
+            context.show()
 
 
 
@@ -50,7 +55,7 @@ def main(argv=None):
         argv = sys.argv
     try:
         try:
-            opts, args = getopt.getopt(argv[1:], "h", ["help", "list-all"])
+            opts, args = getopt.getopt(argv[1:], "h", ["help", "show-all", "show-context="])
         except getopt.error, msg:
              raise Usage(msg)
 
@@ -59,14 +64,15 @@ def main(argv=None):
         contexts.load_from_dir(teams_dir)
         
         for o, a in opts:
-            print "analizzo %s" % o
             if o in ("-h", "--help"):
                 raise Usage("help")
-            elif o == "--list-all":
-                contexts.list_all()
+            elif o == "--show-all":
+                contexts.show_all()
                 return 0
-
-
+            elif o == "--show-context":
+                context_name = a
+                contexts.show(context_name)
+                return 0
 
     except Usage, err:
         print >>sys.stderr, err.msg
