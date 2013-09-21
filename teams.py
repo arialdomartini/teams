@@ -28,6 +28,10 @@ class Context():
     def show(self):
         print "%s => %s " % (self.countries,  self.name)
 
+    def serialize(self):
+        print "[TEAM]=\"%s\"" % self.name
+        print "[COUNTRIES]=\"%s\"" % " ".join(self.countries)
+
 
 class Contexts():
     def load_from_dir(self, teams_dir):
@@ -41,8 +45,13 @@ class Contexts():
             context.load_from_file(dat)
             self.contexts[context.name] = context
 
+    def serialize(self, context):
+        self.contexts[context].serialize()
+
+
     def show(self, context):
         self.contexts[context].show()
+
 
     def show_all(self):
         for name, context in self.contexts.items():
@@ -55,7 +64,7 @@ def main(argv=None):
         argv = sys.argv
     try:
         try:
-            opts, args = getopt.getopt(argv[1:], "h", ["help", "show-all", "show-context="])
+            opts, args = getopt.getopt(argv[1:], "h", ["help", "show-all", "show-context=", "serialize-context="])
         except getopt.error, msg:
              raise Usage(msg)
 
@@ -72,6 +81,10 @@ def main(argv=None):
             elif o == "--show-context":
                 context_name = a
                 contexts.show(context_name)
+                return 0
+            elif o == "--serialize-context":
+                context_name = a
+                contexts.serialize(context_name)
                 return 0
 
     except Usage, err:
