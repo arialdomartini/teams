@@ -5,6 +5,10 @@ import re
 import os.path
 
 
+teams_dir = "./dir-teams"
+exclusion_file = "./excluded.txt"
+
+
 class RunException(Exception):
     def __init__(self, msg):
         self.msg = msg
@@ -24,8 +28,6 @@ Available commands:
         """
 
         self.msg = "%s\n%s" %(msg, helpmsg)
-
-teams_dir = "./dir-teams"
 
 
 class Context():
@@ -81,8 +83,37 @@ class Context():
         return len(self.countries) == 0
 
 
+class ExclusionList():
+
+    def __init__(self):
+        self.countries = []
+
+    def load_from_file(self, file_path):
+        self.file_path = file_path
+        with open(file_path) as f:
+            self.countries = [f.strip() for f in f.readlines() if len(f)>0]
+
+    def start_excluding(self, country):
+        if country in self.countries:
+            raise RunException('Uhm. The country "%s" was already in the exclusion file. This shouldn\'t happen' % country)
+        self.countries.append(country)
+
+    def stop_excluding(self, country):
+        if country not in self.countries:
+            raise RunException('Uhm. The country "%s" was not in the exclusion file. This shouldn\'t happen' % country)
+        self.countries.remove(country)
+
+
+    def persist(self):
+        with open(self.file_path, "w") as f:
+            f.write("\n".join(self.countries))
+
+
 
 class Contexts():
+    def __init__(self, exclusion_list):
+        self.exclusion_list = exclusion_list
+
     def load_from_dir(self, teams_dir):
         self.contexts = {}
 
@@ -95,13 +126,14 @@ class Contexts():
             self.contexts[context.name] = context
 
 
-
     def serialize(self, context):
         return self.contexts[context].serialize()
 
 
-    def show(self, context):
-        self.contexts[context].show()
+    def show(self, context_name):
+        if not self.has(context_name):
+            raise RunException('There\'s no context named "%s"\nUse the "contexts" command to list all the available contexts' % context_name)
+        self.contexts[context_name].show()
 
 
     def show_all(self):
@@ -129,6 +161,8 @@ class Contexts():
         context = self.contexts[context_name]
         context.assign(country)
         self.save(context)
+        self.exclusion_list.start_excluding(country)
+        self.exclusion_list.persist()
 
 
     def release(self, country, context_name):
@@ -145,6 +179,10 @@ class Contexts():
         context = self.contexts[context_name]
         context.release(country)
         self.save(context)
+        self.exclusion_list.stop_excluding(country)
+        self.exclusion_list.persist()
+
+
 
     def save(self, context):
         context.persist()
@@ -199,8 +237,12 @@ def main(argv=None):
         except getopt.error, msg:
              raise Usage(msg)
 
-        contexts = Contexts()
+        exclusion_list = ExclusionList()
+        exclusion_list.load_from_file(exclusion_file)
+
+        contexts = Contexts(exclusion_list)
         contexts.load_from_dir(teams_dir)
+
         
         for o, a in opts:
             if o in ("-h", "--help"):
