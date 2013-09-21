@@ -2,6 +2,7 @@
 import sys
 import getopt
 import re
+import os.path
 
 class Usage(Exception):
     def __init__(self, msg):
@@ -26,6 +27,18 @@ class Context():
                 self.countries = countries
 
 
+class Contexts():
+    def load_from_dir(self, teams_dir):
+        self.contexts = []
+
+        from os import listdir
+        dats = [ os.path.join(teams_dir, f) for f in listdir(teams_dir)] 
+
+        for dat in dats:
+            context = Context()
+            context.load_from_file(dat)
+            self.contexts.append(context)
+
 
 
 
@@ -39,10 +52,11 @@ def main(argv=None):
              raise Usage(msg)
 
 
-        context = Context()
-        context.load_from_file("%s/dwh.dat" % teams_dir)
-        print context.name
-        print context.countries
+        contexts = Contexts()
+        contexts.load_from_dir(teams_dir)
+        for context in contexts.contexts:
+            print "Context: %s, Countries: %s " % (context.name,  context.countries)
+
 
 
 
