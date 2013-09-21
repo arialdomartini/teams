@@ -6,7 +6,18 @@ import os.path
 
 class Usage(Exception):
     def __init__(self, msg):
-        self.msg = msg
+        helpmsg = """
+Available commands:
+  show --country=<country>
+  show --context=<context>
+  show-all
+  assign --country=<country> --context=<context>
+  who-owns --country=<country>
+  serialize --context=<context>
+  contexts
+        """
+
+        self.msg = "%s\n%s" %(msg, helpmsg)
 
 teams_dir = "./dir-teams"
 
@@ -63,39 +74,72 @@ class Contexts():
                 return context.name
         return None
 
+    def assign(self, country, context):
+        print "Assigning the country %s to context %s" % (country, context)
 
+
+    def list_contexts(self):
+        for name in self.contexts.keys():
+            print name
+
+        
 
 def main(argv=None):
     if argv is None:
         argv = sys.argv
+    argv.pop(0)
+
+    if len(argv)==0:
+        raise Usage("")
+
+    commands = ["show", "show-all", "assign", "who-owns", "serialize", "contexts"] 
+    
+    
     try:
+        
+        if argv[0][0] != "-":
+            if argv[0] in commands:
+                command=argv.pop(0)
+            else:
+                raise Usage("%s is not a valid command" % argv[0])
+    
+
         try:
-            opts, args = getopt.getopt(argv[1:], "h", ["help", "show-all", "show-context=", "serialize-context=", "who-owns="])
+            opts, args = getopt.getopt(argv, "h", ["help", "show-all", "show-context=", "who-owns=", "assign", "country=", "context="])
         except getopt.error, msg:
              raise Usage(msg)
-
 
         contexts = Contexts()
         contexts.load_from_dir(teams_dir)
         
         for o, a in opts:
             if o in ("-h", "--help"):
-                raise Usage("help")
-            elif o == "--show-all":
-                contexts.show_all()
-                return 0
-            elif o == "--show-context":
-                context_name = a
-                contexts.show(context_name)
-                return 0
-            elif o == "--serialize-context":
-                context_name = a
-                contexts.serialize(context_name)
-                return 0
-            elif o == "--who-owns":
+                raise Usage("Usage")
+            elif o == "--country":
                 country = a
-                print contexts.who_owns(country)
-                return 0
+            elif o == "--context":
+                context = a
+
+        if command=="assign":
+            if "context" in locals() and "country" in locals():
+                contexts.assign(country, context)
+            else:
+                raise Usage("--country and --context are mandatory")
+        elif command=="show-all":
+            contexts.show_all()
+        elif command=="contexts":
+            contexts.list_contexts()
+        elif command=="who-owns":
+            print contexts.who_owns(country)
+        elif command=="show":
+            if "context" in locals():
+                contexts.show(context)
+            elif "country" in locals():
+                contexts.show(contexts.who_owns(country))
+            else:
+                print "nulla"
+        elif command=="serialize-context":
+            contexts.serialize(context)
 
     except Usage, err:
         print >>sys.stderr, err.msg
