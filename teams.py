@@ -5,8 +5,8 @@ import re
 import os.path
 
 
-teams_dir = "./dir-teams"
-exclusion_file = "./excluded.txt"
+teams_dir = "./teams"
+exclusion_file = "./do_not_deploy_on_countries.conf"
 selfname=sys.argv[0]
 
 class RunException(Exception):
@@ -43,8 +43,8 @@ class Context():
             if len(lines) != 2:
                 raise Exception("bad file %s" % file_path)
             else:
-                name = re.match("\[TEAM\]=\"(.*)\"", lines[0]).groups()[0]
-                countries_string = re.match("\[COUNTRIES\]=\"(.*)\"", lines[1]).groups()[0]
+                name = re.match("TEAMNAME=\"(.*)\"", lines[0]).groups()[0]
+                countries_string = re.match("TEAMCOUNTRIES=\"(.*)\"", lines[1]).groups()[0]
                 countries = countries_string.split(" ")
 
                 self.name = name
@@ -52,12 +52,12 @@ class Context():
 
 
     def show(self):
-        print "%s => %s " % (self.countries,  self.name)
+        print "%s => %s " % (self.name, self.countries)
 
 
     def serialize(self):
-        s= '[TEAM]="%s"\n' % self.name
-        s=s+ '[COUNTRIES]="%s"' % " ".join(self.countries)
+        s= 'TEAMNAME="%s"\n' % self.name
+        s=s+ 'TEAMCOUNTRIES="%s"' % " ".join(self.countries)
         return s
 
 
@@ -122,7 +122,7 @@ class Contexts():
         self.contexts = {}
 
         from os import listdir
-        dats = [ os.path.join(teams_dir, f) for f in listdir(teams_dir)] 
+        dats = [ os.path.join(teams_dir, f) for f in listdir(teams_dir) if f != ".svn"] 
 
         for dat in dats:
             context = Context()
@@ -271,7 +271,11 @@ def main(argv=None):
         elif command=="contexts":
             contexts.list_contexts()
         elif command=="who-owns":
-            print contexts.who_owns(country)
+            if "country" in locals():
+                print contexts.who_owns(country)
+            else:
+                raise RunException("Please, specify a country using the --country option")
+
         elif command=="show":
             if "context" in locals():
                 contexts.show(context)
