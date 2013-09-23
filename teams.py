@@ -7,7 +7,7 @@ import os.path
 
 teams_dir = "./dir-teams"
 exclusion_file = "./excluded.txt"
-
+selfname=sys.argv[0]
 
 class RunException(Exception):
     def __init__(self, msg):
@@ -16,6 +16,9 @@ class RunException(Exception):
 class Usage(Exception):
     def __init__(self, msg):
         helpmsg = """
+Usage:
+%s <command> [--country=<country>] [--context=<context>]
+
 Available commands:
   show --country=<country>
   show --context=<context>
@@ -25,9 +28,10 @@ Available commands:
   who-owns --country=<country>
   serialize --context=<context>
   contexts
-        """
-
-        self.msg = "%s\n%s" %(msg, helpmsg)
+        """ % os.path.basename(selfname)
+        self.msg = helpmsg
+        if msg:
+            self.msg = "%s\n%s" %(msg, helpmsg)
 
 
 class Context():
@@ -246,7 +250,7 @@ def main(argv=None):
         
         for o, a in opts:
             if o in ("-h", "--help"):
-                raise Usage("Usage")
+                raise Usage("")
             elif o == "--country":
                 country = a
             elif o == "--context":
