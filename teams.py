@@ -4,9 +4,8 @@ import getopt
 import re
 import os.path
 
-
-teams_dir = "./teams"
-exclusion_file = "./do_not_deploy_on_countries.conf"
+teams_dir = "/opt/tools/applicationdelivery/teams"
+exclusion_file = "/opt/dist/conf/do_not_deploy_on_countries.conf"
 selfname=sys.argv[0]
 
 class RunException(Exception):
@@ -20,6 +19,7 @@ Usage:
 %s <command> [--country=<country>] [--context=<context>]
 
 Available commands:
+  update-board
   show --country=<country>
   show --context=<context>
   show-all
@@ -81,7 +81,7 @@ class Context():
             raise RunException('Country "%s" is not assigned to context "%s"' % (country, self.name))
         else:
             self.countries.remove(country)
-
+            self.update_board()
 
     def is_empty(self):
         return len(self.countries) == 0
@@ -129,6 +129,47 @@ class Contexts():
             context.load_from_file(dat)
             self.contexts[context.name] = context
 
+    def update_board(self):
+        rows = []
+        for name in sorted(self.contexts.keys()):
+            row = "<tr><td>%s</td><td>%s</td></tr>" % (name, ", ".join(self.contexts[name].countries))
+            rows.append(row)
+        rows_html = " ".join(rows)
+
+        html = """<html>
+  <body>
+   <head>
+     <style TYPE="text/css">
+        table {
+          width:100%;
+          font-size:150%;
+          font-family: arial;
+          border:0;
+border-collapse: collapse;
+        }
+        thead tr { background:#fff; font-size:75%; border:0;}
+        tbody tr:nth-child(even) {background:#fff; font-weight:bold;}
+        tbody tr:nth-child(odd) {background: #eeeeee; font-weight:bold;}
+        td { padding:0.2em; }
+     </style>
+   </head>
+    <table>
+      <thead>
+        <tr>
+          <td>Context</td>
+          <td>Countries</td>
+        </tr>
+      </thead>
+      <tbody>
+        $$$
+      </tbody>
+    </table>
+  </body>
+</html>
+"""
+        html = html.replace("$$$", rows_html)
+        with open("board.html", "w") as f:
+            f.write(html)
 
     def serialize(self, context):
         return self.contexts[context].serialize()
@@ -185,6 +226,7 @@ class Contexts():
         self.save(context)
         self.exclusion_list.stop_excluding(country)
         self.exclusion_list.persist()
+        self.update_board()
 
 
 
@@ -224,9 +266,8 @@ def main(argv=None):
     if len(argv)==0:
         raise Usage("")
 
-    commands = ["show", "show-all", "assign", "release", "who-owns", "serialize", "contexts"] 
-    
-    
+    commands = ["show", "show-all", "assign", "release", "who-owns", "serialize", "contexts", "update-board"]
+
     try:
         
         if argv[0][0] != "-":
@@ -255,13 +296,14 @@ def main(argv=None):
                 country = a
             elif o == "--context":
                 context = a
-
-        if command=="assign":
+        if command=="update-board":
+            contexts.update_board()
+        elif command=="assign":
             if "context" in locals() and "country" in locals():
                 contexts.assign(country, context)
             else:
                 raise Usage("--country and --context are mandatory")
-        if command=="release":
+        elif command=="release":
             if "context" in locals() and "country" in locals():
                 contexts.release(country, context)
             else:
